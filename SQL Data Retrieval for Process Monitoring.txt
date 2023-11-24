@@ -1,0 +1,208 @@
+--Retrieving workflow data from MES Data Warehouse 1
+SELECT LEFT(wf.Number, 11) OrderNumber, wf.ActivityDefinition MRName, act.Name StepName, act.Description StepDescription, act.Iteration StepVersion, par.Name ParamName, par.Value ParamValue, 'v1' WFVersion
+INTO #AllResults
+FROM  [MES_DATA_WAREHOUSE_1].[dbo].[ActivityInstanceParameters] par
+JOIN [MES_DATA_WAREHOUSE_1].[dbo].[ActivityInstances] act on par.ActivityInstanceId = act.ActivityInstanceId
+JOIN [MES_DATA_WAREHOUSE_1].[dbo].[WorkflowInstances] wf on act.WorkflowInstanceId = wf.WorkflowInstanceId
+WHERE (par.Name in ('OP_O_VIA', 'OP_O_VCC', 'OP_O_TNC') and
+(act.Name like 'OP_UI_CELL_COUNT_SUMMARY%') and
+(act.Description like '%APH%' or act.Description like '%SMAT%' or act.Description like '%TIPT%' or act.Description like '%AMAT%' or act.Description like '%XMAT%' or act.Description like '%DMAT%' or act.Description like '%PREH%' or act.Description like '%FDP%'))
+or (par.Name like 'UP_[LO]_INOC%COMPLETE%' and act.Name like 'UP%CELL_INOCULATION:1')
+or ((par.Name like 'UP_[LO]_DATETIME_NOW%' or par.Name like 'UP_[LO]_INOC%START%') and act.Name like 'UP%CELL_MAINTENANCE:1')
+or (par.Name like 'UP_[LO]_CMAT_LO%[TR]' and act.Name like 'UP%ACTIVATION:1')
+or (par.Name like 'UP_[LO]_APH%COLLECTION%DT' and (act.Name like 'UP%MNC_RECEIPT:1' or act.Name like 'UP%REAGENT_PREP:1'))
+or (par.Name like 'UP_[LO]_WASH_START_DT' and act.Name like 'UP%APH_WASH:1')
+or (par.Name like 'UP_[LO]_APH%SITE_TIMEZONE' and (act.Name like 'UP%MNC_RECEIPT:1' or act.Name like 'UP%REAGENT_PREP:1'))
+
+
+--Retrieving workflow data from MES Data Warehouse 2
+INSERT INTO #AllResults
+(OrderNumber, MRName, StepName, StepDescription, StepVersion, ParamName, ParamValue, WFVersion)
+SELECT LEFT(ord.OrderNumber, 11) OrderNumber, ord.Name MRName, ii.StepName StepName, ii.InstanceDescription StepDescription, ii.Version StepVersion, iip.Name ParamName, iipi.CV ParamValue, 'v2' WFVersion
+FROM  [MES_DATA_WAREHOUSE_2].[dbo].[ItemInstanceParameterIterations] iipi
+JOIN [MES_DATA_WAREHOUSE_2].[dbo].[ItemInstanceParameters] iip on iipi.ItemInstanceParameterGUID = iip.ItemInstanceParameterGUID
+JOIN [MES_DATA_WAREHOUSE_2].[dbo].[ItemInstances] ii on iip.ItemInstanceGUID = ii.ItemInstanceGUID
+JOIN [MES_DATA_WAREHOUSE_2].[dbo].[Orders] ord on ii.OrderGUID = ord.OrderGUID
+WHERE (iip.Name in ('OP_O_VIA', 'OP_O_VCC', 'OP_O_TNC') and
+(ii.StepName like 'OP_UI_CELL_COUNT_SUMMARY%') and
+(ii.InstanceDescription like '%APH%' or ii.InstanceDescription like '%SMAT%' or ii.InstanceDescription like '%TIPT%' or ii.InstanceDescription like '%AMAT%' or ii.InstanceDescription like '%XMAT%' or ii.InstanceDescription like '%DMAT%' or ii.InstanceDescription like '%PREH%' or ii.InstanceDescription like '%FDP%'))
+or (iip.Name like 'UP_[LO]_INOC%COMPLETE%' and ii.StepName like 'UP%CELL_INOCULATION:1')
+or ((iip.Name like 'UP_[LO]_DATETIME_NOW%' or iip.Name like 'UP_[LO]_INOC%START%') and ii.StepName like 'UP%CELL_MAINTENANCE:1')
+or (iip.Name like 'UP_[LO]_CMAT_LO%[TR]' and ii.StepName like 'UP%ACTIVATION:1')
+or (iip.Name like 'UP_[LO]_APH%COLLECTION%DT' and (ii.StepName like 'UP%MNC_RECEIPT:1' or ii.StepName like 'UP%REAGENT_PREP:1'))
+or (iip.Name like 'UP_[LO]_WASH_START_DT' and ii.StepName like 'UP%APH_WASH:1')
+or (iip.Name like 'UP_[LO]_APH%SITE_TIMEZONE' and (ii.StepName like 'UP%MNC_RECEIPT:1' or ii.StepName like 'UP%REAGENT_PREP:1'))
+
+
+--Retrieving workflow data from MES Data Warehouse 2A (Archived)
+INSERT INTO #AllResults
+(OrderNumber, MRName, StepName, StepDescription, StepVersion, ParamName, ParamValue, WFVersion)
+SELECT LEFT(ordA.OrderNumber, 11) OrderNumber, ordA.Name MRName, iiA.StepName StepName, iiA.InstanceDescription StepDescription, iiA.Version StepVersion, iipA.Name ParamName, iipiA.CV ParamValue, 'v2A' WFVersion
+FROM  [MES_DATA_WAREHOUSE_2A].[dbo].[ItemInstanceParameterIterations] iipiA
+JOIN [MES_DATA_WAREHOUSE_2A].[dbo].[ItemInstanceParameters] iipA on iipiA.ItemInstanceParameterGUID = iipA.ItemInstanceParameterGUID
+JOIN [MES_DATA_WAREHOUSE_2A].[dbo].[ItemInstances] iiA on iipA.ItemInstanceGUID = iiA.ItemInstanceGUID
+JOIN [MES_DATA_WAREHOUSE_2A].[dbo].[Orders] ordA on iiA.OrderGUID = ordA.OrderGUID
+WHERE (iipA.Name in ('OP_O_VIA', 'OP_O_VCC', 'OP_O_TNC') and
+(iiA.StepName like 'OP_UI_CELL_COUNT_SUMMARY%') and
+(iiA.InstanceDescription like '%APH%' or iiA.InstanceDescription like '%SMAT%' or iiA.InstanceDescription like '%TIPT%' or iiA.InstanceDescription like '%AMAT%' or iiA.InstanceDescription like '%XMAT%' or iiA.InstanceDescription like '%DMAT%' or iiA.InstanceDescription like '%PREH%' or iiA.InstanceDescription like '%FDP%'))
+or (iipA.Name like 'UP_[LO]_INOC%COMPLETE%' and iiA.StepName like 'UP%CELL_INOCULATION:1')
+or ((iipA.Name like 'UP_[LO]_DATETIME_NOW%' or iipA.Name like 'UP_[LO]_INOC%START%') and iiA.StepName like 'UP%CELL_MAINTENANCE:1')
+or (iipA.Name like 'UP_[LO]_CMAT_LO%[TR]' and iiA.StepName like 'UP%ACTIVATION:1')
+or (iipA.Name like 'UP_[LO]_APH%COLLECTION%DT' and (iiA.StepName like 'UP%MNC_RECEIPT:1' or iiA.StepName like 'UP%REAGENT_PREP:1'))
+or (iipA.Name like 'UP_[LO]_WASH_START_DT' and iiA.StepName like 'UP%APH_WASH:1')
+or (iipA.Name like 'UP_[LO]_APH%SITE_TIMEZONE' and (iiA.StepName like 'UP%MNC_RECEIPT:1' or iiA.StepName like 'UP%REAGENT_PREP:1'))
+
+
+--Where there are multiple executions of a given recipe object or activity, only return the value of the latest version
+SELECT * INTO #AllResults0
+FROM (SELECT x.*, ROW_NUMBER() OVER (PARTITION BY MRName, OrderNumber, StepName, StepDescription, ParamName ORDER BY StepVersion desc) AS rn FROM #AllResults AS x) ranked
+WHERE ranked.rn = 1
+DROP TABLE #AllResults
+
+
+--Concatenating Step Description and Parameter Name for OP Parameters TNC, VCC, VIA
+SELECT * INTO #AllResults1
+FROM
+((SELECT OrderNumber, MRName, StepName, CONCAT(StepDescription, ' ', ParamName) AS ParamName, ParamValue
+FROM #AllResults0
+WHERE ParamName like 'OP%')
+UNION
+(SELECT OrderNumber, MRName, StepName, ParamName, ParamValue
+FROM #AllResults0
+WHERE ParamName like 'UP%')) concatenatedResults
+DROP TABLE #AllResults0
+
+
+--Consolidating different parameter names for each attribute
+SELECT OrderNumber, MRName,
+(CASE
+	WHEN ParamName like '%APH%TNC' THEN 'APH_TNC'
+	WHEN ParamName like '%APH%VCC' THEN 'APH_VCC'
+	WHEN ParamName like '%APH%VIA' THEN 'APH_VIA'
+	WHEN ParamName like '%SMAT%TNC' THEN 'SMAT_TNC'
+	WHEN ParamName like '%SMAT%VCC' THEN 'SMAT_VCC'
+	WHEN ParamName like '%SMAT%VIA' THEN 'SMAT_VIA'
+	WHEN ParamName like '%TIPT%TNC' THEN 'TIPT_TNC'
+	WHEN ParamName like '%TIPT%VCC' THEN 'TIPT_VCC'
+	WHEN ParamName like '%TIPT%VIA' THEN 'TIPT_VIA'
+	WHEN ParamName like '%AMAT%TNC' THEN 'AMAT_TNC'
+	WHEN ParamName like '%AMAT%VCC' THEN 'AMAT_VCC'
+	WHEN ParamName like '%AMAT%VIA' THEN 'AMAT_VIA'
+	WHEN ParamName like '%XMAT%TNC' THEN 'XMAT_TNC'
+	WHEN ParamName like '%XMAT%VCC' THEN 'XMAT_VCC'
+	WHEN ParamName like '%XMAT%VIA' THEN 'XMAT_VIA'
+	WHEN ParamName like '%DMAT%TNC' THEN 'DMAT_TNC'
+	WHEN ParamName like '%DMAT%VCC' THEN 'DMAT_VCC'
+	WHEN ParamName like '%DMAT%VIA' THEN 'DMAT_VIA'
+	WHEN ParamName like '%PREH%TNC' THEN 'PREH_TNC'
+	WHEN ParamName like '%PREH%VCC' THEN 'PREH_VCC'
+	WHEN ParamName like '%PREH%VIA' THEN 'PREH_VIA'
+	WHEN ParamName like '%FDP%TNC' THEN 'FDP_TNC'
+	WHEN ParamName like '%FDP%VCC' THEN 'FDP_VCC'
+	WHEN ParamName like '%FDP%VIA' THEN 'FDP_VIA'
+	WHEN ParamName like '%INOC%COMPLETE%' THEN 'EXPANSION_START'
+	WHEN ParamName like '%DATETIME_NOW%' THEN 'EXPANSION_END'
+	WHEN ParamName like '%INOC%START%' THEN 'EXPANSION_END'
+	WHEN ParamName like '%CMAT_LOT%' THEN 'CMAT_LOT'
+	WHEN ParamName like '%APH%COLLECTION%DT' THEN 'APH_COLLECTION'
+	WHEN ParamName like '%WASH_START_DT' THEN 'APH_WASH'
+	WHEN ParamName like '%APH%SITE_TIMEZONE' THEN 'APH_COLLECTION_TIMEZONE'
+	ELSE ParamName
+END) As ParamName, ParamValue
+INTO #AllResults2
+FROM #AllResults1
+DROP TABLE #AllResults1
+
+
+--Pivoting #AllResults2 (instead of returning all the values of interest per lot on their own row, start pivoting to concatenate them together into one row)
+SELECT * INTO #AllResults3
+FROM
+(SELECT OrderNumber, MRName, ParamName, ParamValue FROM #AllResults2) NeededResults
+PIVOT
+(MAX(ParamValue) FOR [ParamName] in
+([CMAT_LOT],
+[APH_COLLECTION],
+[APH_COLLECTION_TIMEZONE],
+[APH_WASH],
+[APH_TNC],
+[APH_VCC],
+[APH_VIA],
+[SMAT_TNC],
+[SMAT_VCC],
+[SMAT_VIA],
+[TIPT_TNC],
+[TIPT_VCC],
+[TIPT_VIA],
+[AMAT_TNC],
+[AMAT_VCC],
+[AMAT_VIA],
+[XMAT_TNC],
+[XMAT_VCC],
+[XMAT_VIA],
+[DMAT_TNC],
+[DMAT_VCC],
+[DMAT_VIA],
+[EXPANSION_START],
+[EXPANSION_END],
+[PREH_TNC],
+[PREH_VCC],
+[PREH_VIA],
+[FDP_TNC],
+[FDP_VCC],
+[FDP_VIA])) PivotedResults
+DROP TABLE #AllResults2
+
+
+--Retrieving output container information from MES Inventory Database
+SELECT
+	LEFT(containers.LotNumber, 11) [LOT_NUMBER],
+	containers.ReceivedDate [MFG_DATE],
+	materials.MaterialCode [MATERIAL_CODE],
+	materials.Description [MATERIAL_TYPE],
+	statuses.LongDescription [LOT_STATUS],
+	transactions.LongDescription [TRANSACTION],
+	containers.TimeInEffectivity [EFFECTIVITY]
+INTO #StatusResults
+FROM ([MES_INVENTORY].[dbo].[Containers] containers
+JOIN [MES_INVENTORY].[dbo].[Materials] materials on containers.MaterialUID = materials.MaterialUID and containers.MaterialVersionNo = materials.InternalVersionNo)
+LEFT JOIN [MES_INVENTORY].[dbo].[ContainerQCStates] statuses on containers.ContainerStateUID = statuses.ContainerQCStatesUID
+LEFT JOIN [MES_INVENTORY].[dbo].[ContainerTypes] containerTypes on containers.ContainerTypesUID = containerTypes.ContainerTypesUID
+LEFT JOIN [MES_INVENTORY].[dbo].[TransactionCodes] transactions on containers.TransactionCode = transactions.TransactionCodes
+WHERE containerTypes.LongDescription = 'Inventory'
+and LEFT(containers.LotNumber, 11) IN (SELECT DISTINCT OrderNumber FROM #AllResults3 WHERE CMAT_LOT IS NOT NULL and CMAT_LOT <> '')
+
+
+--Extracting the initial lot status (after inventory creation) and latest lot status (after QC review)
+SELECT * INTO #StatusCreation
+FROM (SELECT x.*, ROW_NUMBER() OVER (PARTITION BY [LOT_NUMBER] ORDER BY [EFFECTIVITY] asc) AS rn FROM #StatusResults AS x) ranked
+WHERE ranked.rn = 1
+
+SELECT * INTO #StatusReview
+FROM (SELECT x.*, ROW_NUMBER() OVER (PARTITION BY [LOT_NUMBER] ORDER BY [EFFECTIVITY] desc) AS rn FROM #StatusResults AS x) ranked
+WHERE ranked.rn = 1
+
+SELECT s1.[LOT_NUMBER], s1.[MFG_DATE], s1.[MATERIAL_CODE], s1.[MATERIAL_TYPE], s1.[LOT_STATUS] [INITIAL_STATUS], s2.[LOT_STATUS] [CURRENT_STATUS]
+INTO #StatusResults0
+FROM #StatusCreation s1 JOIN #StatusReview s2 on s1.[LOT_NUMBER] = s2.[LOT_NUMBER]
+WHERE s1.[TRANSACTION] <> s2.[TRANSACTION] and s1.[TRANSACTION] = 'Receive Output Container'
+
+
+--Matching Order Numbers with CMAT lots to pull CMAT and CDP parameters of CDP Orders, and matching with Lot Numbers to pull CDP output container information
+SELECT LEFT(t1.OrderNumber, 10) [JOIN], t1.OrderNumber [CDP_LOT], t1.[CMAT_LOT], REPLACE(REPLACE(REPLACE(LEFT(t1.MRName, 4), 'MR_J', 'Clinical'),'MR_A', 'Clinical'),'MR_C', 'Commercial') [RECIPE_TYPE], t2.[APH_COLLECTION], t2.[APH_COLLECTION_TIMEZONE], t2.[APH_WASH], t2.[APH_TNC], t2.[APH_VCC], t2.[APH_VIA], t2.[SMAT_TNC], t2.[SMAT_VCC], t2.[SMAT_VIA], t1.[TIPT_TNC], t1.[TIPT_VCC], t1.[TIPT_VIA], t1.[AMAT_TNC], t1.[AMAT_VCC], t1.[AMAT_VIA], t1.[XMAT_TNC], t1.[XMAT_VCC], t1.[XMAT_VIA], t1.[DMAT_TNC], t1.[DMAT_VCC], t1.[DMAT_VIA], t1.[EXPANSION_START], t1.[EXPANSION_END], t1.[PREH_TNC], t1.[PREH_VCC], t1.[PREH_VIA], t1.[FDP_TNC], t1.[FDP_VCC], t1.[FDP_VIA], t3.[MFG_DATE], t3.[MATERIAL_CODE], t3.[MATERIAL_TYPE], t3.[INITIAL_STATUS], t3.[CURRENT_STATUS]
+INTO #AllResults4
+FROM #AllResults3 t1
+LEFT JOIN #AllResults3 t2 on LEFT(t1.[CMAT_LOT], 11) = t2.OrderNumber
+LEFT JOIN #StatusResults0 t3 on t1.OrderNumber = t3.[LOT_NUMBER]
+WHERE t1.[CMAT_LOT] IS NOT NULL and t1.[CMAT_LOT] <> ''
+DROP TABLE #AllResults3
+DROP TABLE #StatusResults
+DROP TABLE #StatusCreation
+DROP TABLE #StatusReview
+DROP TABLE #StatusResults0
+
+
+--Displaying #AllResults4
+SELECT * FROM #AllResults4
+ORDER BY CDP_LOT
+DROP TABLE #AllResults4
+
